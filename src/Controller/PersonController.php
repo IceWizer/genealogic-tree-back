@@ -1,0 +1,214 @@
+<?php
+
+namespace App\Controller;
+
+use App\Entity\Person;
+use App\Repository\PersonRepository;
+use App\Request\Person\Create;
+use App\Request\Person\Update;
+use App\Response\Person\Option;
+use App\Response\Person\Read;
+use App\Response\Person\Show;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
+use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Uid\Uuid;
+
+#[Route("/api/person")]
+final class PersonController extends BaseController
+{
+    private PersonRepository $repository;
+
+    public function __construct(PersonRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    #[Route('/', name: 'index', methods: ['GET'])]
+    public function index(): Response
+    {
+        $people = $this->repository->findAllByOwner($this->getUser());
+
+        $formattedPeople = array_map(function ($person) {
+            return new Read($person);
+        }, $people);
+
+        return $this->json($formattedPeople, Response::HTTP_OK, []);
+    }
+
+    #[Route('/{id}', name: 'show', requirements: ['id' => self::UUID_REGEX], methods: ['GET'])]
+    public function show(string $id): Response
+    {
+        $person = $this->repository->findOneBy(['id' => $id]);
+
+        if ($person === null) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($person->getOwner()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        return $this->json(new Show($person), Response::HTTP_OK, []);
+    }
+
+    #[Route('', name: 'create', methods: ['POST'])]
+    public function create(#[MapRequestPayload(acceptFormat: "json")] Create $createRequest, EntityManagerInterface $em): Response
+    {
+        $person = new Person();
+
+        $person->setName($createRequest->name);
+        $person->setFirstnames($createRequest->firstnames);
+        if (isset($createRequest->birthname) && !empty($createRequest->birthname)) {
+            $person->setBirthname($createRequest->birthname);
+        }
+        if (isset($createRequest->birthDate) && !empty($createRequest->birthDate)) {
+            $person->setBirthdate(new \DateTime($createRequest->birthDate));
+        } else {
+            $person->setBirthdate(null);
+        }
+        if (isset($createRequest->birthCertificate) && !empty($createRequest->birthCertificate)) {
+            $person->setBirthCertificate(intval($createRequest->birthCertificate));
+        }
+        if (isset($createRequest->deathDate) && !empty($createRequest->deathDate)) {
+            $person->setDeathdate(new \DateTime($createRequest->deathDate));
+        } else {
+            $person->setDeathdate(null);
+        }
+        if (isset($createRequest->deathCertificate) && !empty($createRequest->deathCertificate)) {
+            $person->setDeathCertificate(intval($createRequest->deathCertificate));
+        }
+        $person->setOwner($this->getUser());
+
+        $em->persist($person);
+        $em->flush();
+
+        return $this->json(new Show($person), Response::HTTP_CREATED, []);
+    }
+
+    #[Route('/{id}', name: 'update', requirements: ['id' => self::UUID_REGEX], methods: ['PUT'])]
+    public function update(#[MapRequestPayload(acceptFormat: "json")] Update $request, string $id, EntityManagerInterface $em): Response
+    {
+        $person = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary(), 'owner' => $this->getUser()->getId()->toBinary()]);
+
+        if ($person === null) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($person->getOwner()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        $person->setName($request->name);
+        $person->setFirstnames($request->firstnames);
+        $person->setBirthname($request->birthname);
+        if (isset($request->birthdate) && !empty($request->birthdate)) {
+            $person->setBirthdate(new \DateTime($request->birthdate));
+        } else {
+            $person->setBirthdate(null);
+        }
+        if (isset($request->birthCertificate) && !empty($request->birthCertificate)) {
+            $person->setBirthCertificate(intval($request->birthCertificate));
+        } else {
+            $person->setBirthCertificate(null);
+        }
+        if (isset($request->deathDate) && !empty($request->deathDate)) {
+            $person->setDeathdate(new \DateTime($request->deathDate));
+        } else {
+            $person->setDeathdate(null);
+        }
+        if (isset($request->deathCertificate) && !empty($request->deathCertificate)) {
+            $person->setDeathCertificate(intval($request->deathCertificate));
+        } else {
+            $person->setDeathCertificate(null);
+        }
+
+        $em->flush();
+
+        return $this->json(new Show($person), Response::HTTP_OK, []);
+    }
+
+    #[Route('/{id}/possible-children', name: 'possible_children', requirements: ['id' => self::UUID_REGEX], methods: ['GET'])]
+    public function possibleChildren(string $id): Response
+    {
+        $parent = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary()]);
+
+        if ($parent === null) {
+            return $this->json(['error' => 'Parent not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        $possibleChildren = array_map(function (Person $person): Option {
+            return new Option($person);
+        }, $this->repository->findPossibleChildren($parent));
+
+        return $this->json($possibleChildren, Response::HTTP_OK, []);
+    }
+
+    #[Route('/{id}/add-child/{childId}', name: 'add_child', requirements: ['id' => self::UUID_REGEX, 'childId' => self::UUID_REGEX], methods: ['POST'])]
+    public function addChild(string $id, string $childId, EntityManagerInterface $em): Response
+    {
+        $parent = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary()]);
+        $child = $this->repository->findOneBy(['id' => Uuid::fromString($childId)->toBinary()]);
+
+        if (
+            $parent === null
+            || $child === null
+            || $parent->getOwner()->getId() !== $this->getUser()->getId()
+            || $child->getOwner()->getId() !== $this->getUser()->getId()
+        ) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($parent->getChildren()->contains($child)) {
+            return $this->json(['error' => 'Person already has this child'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($child->getParent1() !== null && $child->getParent2() !== null) {
+            return $this->json(['error' => 'Person already has two parents'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($child->getParent1() === null) {
+            $child->setParent1($parent);
+        } else {
+            $child->setParent2($parent);
+        }
+
+        $em->flush();
+
+        return $this->json("Child added", Response::HTTP_OK, [], ['groups' => 'person:show']);
+    }
+
+    #[Route('/{id}/remove-child/{childId}', name: 'remove_child', requirements: ['id' => self::UUID_REGEX, 'childId' => self::UUID_REGEX], methods: ['POST'])]
+    public function removeChild(string $id, string $childId, EntityManagerInterface $em): Response
+    {
+        $parent = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary()]);
+        $child = $this->repository->findOneBy(['id' => Uuid::fromString($childId)->toBinary()]);
+
+        if ($parent === null || $child === null) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($parent->getOwner()->getId() !== $this->getUser()->getId() || $child->getOwner()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (!$parent->getChildren()->contains($child)) {
+            return $this->json(['error' => 'Person does not have this child'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($child->getParent1() !== $parent && $child->getParent2() !== $parent) {
+            return $this->json(['error' => 'Person is not a parent of this child'], Response::HTTP_BAD_REQUEST);
+        }
+
+        if ($child->getParent1() === $parent) {
+            $child->setParent1(null);
+        } else {
+            $child->setParent2(null);
+        }
+
+        $em->flush();
+
+        return $this->json("Child removed", Response::HTTP_OK, [], ['groups' => 'person:show']);
+    }
+}
