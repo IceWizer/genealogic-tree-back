@@ -64,7 +64,7 @@ jobs:
         fi
 
     - name: Create env
-      run: echo "${{ secrets.ENV }}" > .env
+      run: echo "${{ secrets.ENV }}" > .env && cat .env
 
     - name: Build Docker image
       run: docker build --file DockerfileProd --tag ${{ secrets.REGISTRY_URL }}/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:${{ env.DOCKER_TAG }} --tag ${{ secrets.REGISTRY_URL }}/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:latest .
