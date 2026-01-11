@@ -68,7 +68,18 @@ jobs:
       run: echo "DOCKER_TAG=v0.2.4" >> $GITHUB_ENV
 
     - name: Create env
-      run: echo "${{ secrets.ENV }}" > .env && cat .env
+      run: |
+        echo "${{ secrets.ENV }}" | while IFS= read -r line; do
+          if [[ "$line" == *=* ]]; then
+            key=$(echo "$line" | cut -d '=' -f 1)
+            value=$(echo "$line" | cut -d '=' -f 2-)
+            if [[ "$value" =~ [[:space:]] ]]; then
+              echo "$key=\"$value\"" >> .env
+            else
+              echo "$key=$value" >> .env
+            fi
+          fi
+        done
 
     - name: Build Docker image
       run: docker build --file DockerfileProd --tag ${{ secrets.REGISTRY_URL }}/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:${{ env.DOCKER_TAG }} --tag ${{ secrets.REGISTRY_URL }}/${{ secrets.DOCKER_USERNAME }}/${{ secrets.IMAGE_NAME }}:latest .
