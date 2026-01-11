@@ -9,8 +9,8 @@ class Show
 {
     public ?string $id;
     public ?string $name;
-    public ?string $firstnames;
-    public ?string $birthname;
+    public ?string $firstNames;
+    public ?string $birthName;
     public ?\DateTimeInterface $birthDate;
     public ?int $birthCertificate;
     public ?\DateTimeInterface $deathDate;
@@ -23,8 +23,8 @@ class Show
     ) {
         $this->id = $person->getId()->toRfc4122();
         $this->name = $person->getName();
-        $this->firstnames = $person->getFirstnames();
-        $this->birthname = $person->getBirthname();
+        $this->firstNames = $person->getFirstNames();
+        $this->birthName = $person->getBirthName();
         $this->birthDate = $person->getBirthDate();
         $this->birthCertificate = $person->getBirthCertificate();
         $this->deathDate = $person->getDeathDate();

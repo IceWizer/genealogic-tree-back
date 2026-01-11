@@ -18,13 +18,11 @@ services:
       - db
     links:
       - "db:database"
-    ports:
-      - "9003:9003"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     user: 1000:1000
   db:
-    image: mysql:8.3
-    ports:
-      - "3306:3306"
+    image: mysql:9.4
     environment:
       - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
       - MYSQL_DATABASE=${MYSQL_DATABASE}

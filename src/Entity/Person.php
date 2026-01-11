@@ -26,7 +26,7 @@ class Person
 
     #[ORM\Column(length: 255)]
     #[Groups(['person:read', 'person:show'])]
-    private ?string $firstnames = null;
+    private ?string $firstNames = null;
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['person:read', 'person:show'])]
@@ -108,14 +108,14 @@ class Person
         return $this;
     }
 
-    public function getFirstnames(): ?string
+    public function getFirstNames(): ?string
     {
-        return $this->firstnames;
+        return $this->firstNames;
     }
 
-    public function setFirstnames(string $firstnames): static
+    public function setFirstNames(string $firstNames): static
     {
-        $this->firstnames = $firstnames;
+        $this->firstNames = $firstNames;
 
         return $this;
     }

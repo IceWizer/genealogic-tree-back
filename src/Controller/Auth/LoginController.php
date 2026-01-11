@@ -18,22 +18,51 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Required;
 use Symfony\Component\Validator\Constraints\Type;
 use Symfony\Component\Validator\Validation;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use OpenApi\Attributes as OA;
 
+#[OA\Tag("Auth")]
 class LoginController extends AbstractController
 {
     /**
-     * Unable to test this method because it's handled by LexikJWTAuthenticationBundle
-     * @codeCoverageIgnore
+     * Get JWT token to login
+     * 
+     * @param Request $request
+     * @return Response
      */
-    #[Route('/api/auth/login', name: 'api_login')]
-    public function login(#[CurrentUser] ?User $user): Response
-    {
-        return $this->json([
-            'user' => $user,
-        ]);
-    }
+    #[OA\Post(
+        summary: "Get JWT token to login",
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\JsonContent(
+                required: ["email", "password"],
+                properties: [
+                    new OA\Property(property: "email", type: "string", example: "your_email"),
+                    new OA\Property(property: "password", type: "string", example: "your_password")
+                ]
+            )
+        ),
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "JWT Token",
+                content: new OA\JsonContent(
+                    properties: [
+                        new OA\Property(property: "token", type: "string", example: "your.jwt.token")
+                    ]
+                )
+            ),
+            new OA\Response(
+                response: 401,
+                description: "Invalid credentials"
+            )
+        ]
+    )]
+    #[Route("/api/auth/login", name: "api_login", methods: ["POST"])]
+    public function login() {}
 
-    #[Route('/api/auth/logout', name: 'api_logout')]
+    #[Security(name: "Bearer")]
+    #[Route('/api/auth/logout', name: 'api_logout', methods: ['POST'])]
     public function logout(): Response
     {
         return $this->json([
@@ -137,6 +166,7 @@ class LoginController extends AbstractController
         ]);
     }
 
+    #[Security(name: "Bearer")]
     #[Route("/api/auth/forgot-password", name: "api_forgot_password", methods: ["POST"], options: ["no_auth" => true])]
     public function forgotPassword(Request $request, EntityManagerInterface $em, UserRepository $userRepository, MailerInterface $mailer): Response
     {

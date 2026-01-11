@@ -5,6 +5,7 @@ namespace App\Repository;
 use App\Entity\Person;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\Persistence\ManagerRegistry;
 
 /**
@@ -45,6 +46,34 @@ class PersonRepository extends ServiceEntityRepository
             ->getResult()
         ;
     }
+
+    public function findAllByOwnerAndQuery(User $owner, string $query): array
+    {
+        $queries = explode(' ', $query);
+        $queryBuilder = $this->createQueryBuilder('p')
+            ->andWhere('p.owner = :owner')
+            ->setParameter('owner', $owner->getId()->toBinary())
+            ->orderBy('p.id', 'ASC');
+
+        $i = 0;
+        foreach ($queries as $singleQuery) {
+            $param = 'query_' . $i;
+            $queryBuilder->andWhere(
+                $queryBuilder->expr()->orX(
+                    $queryBuilder->expr()->like('p.name', ':' . $param),
+                    $queryBuilder->expr()->like('p.firstNames', ':' . $param),
+                    $queryBuilder->expr()->like('p.birthName', ':' . $param)
+                )
+            );
+            $queryBuilder->setParameter($param, '%' . $singleQuery . '%');
+            $i++;
+        }
+
+        return $queryBuilder
+            ->getQuery()
+            ->getResult();
+    }
+
 
     public function findPossibleChildren(Person $parent): array
     {

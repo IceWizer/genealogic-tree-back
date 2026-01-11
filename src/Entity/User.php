@@ -103,10 +103,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUserIdentifier(): string
     {
-        if ($this->id === null) {
+        if ($this->email === null) {
             throw new \LogicException('The user identifier is not set.');
         }
-        return $this->id->toRfc4122();
+        return $this->email;
     }
 
     public function getEmailVerifiedAt(): ?\DateTimeImmutable

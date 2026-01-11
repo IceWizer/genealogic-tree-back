@@ -1,7 +1,7 @@
-FROM php:8.3-fpm-alpine
+FROM php:8.4.11-fpm-alpine
 LABEL authors="Florian Charlot"
 
-COPY --from=composer:2.1.9 /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.8.10 /usr/bin/composer /usr/bin/composer
 
 RUN apk add --no-cache \
 	bash \
@@ -17,7 +17,7 @@ RUN apk add --no-cache \
 	# Add xdebug
 	&& apk add --no-cache --virtual .build-deps $PHPIZE_DEPS \
 	&& apk add --no-cache --update linux-headers \
-	&& pecl install xdebug-3.3.2 \
+	&& pecl install xdebug-3.4.5 \
 	&& apk del -f .build-deps
 
 COPY ./ /var/www/html/

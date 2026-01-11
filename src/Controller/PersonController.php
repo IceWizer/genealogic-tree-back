@@ -14,8 +14,14 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
+use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use Nelmio\ApiDocBundle\Annotation\Security;
+use App\Entity\User;
+use Symfony\Component\HttpFoundation\Request;
 
 #[Route("/api/person")]
+#[IsGranted('ROLE_USER')]
 final class PersonController extends BaseController
 {
     private PersonRepository $repository;
@@ -26,9 +32,14 @@ final class PersonController extends BaseController
     }
 
     #[Route('/', name: 'index', methods: ['GET'])]
-    public function index(): Response
+    public function index(#[CurrentUser] User $user, Request $request): Response
     {
-        $people = $this->repository->findAllByOwner($this->getUser());
+        $q = $request->query->get('q');
+        if ($q) {
+            $people = $this->repository->findAllByOwnerAndQuery($user, $q);
+        } else {
+            $people = $this->repository->findAllByOwner($user);
+        }
 
         $formattedPeople = array_map(function ($person) {
             return new Read($person);
@@ -59,22 +70,22 @@ final class PersonController extends BaseController
         $person = new Person();
 
         $person->setName($createRequest->name);
-        $person->setFirstnames($createRequest->firstnames);
-        if (isset($createRequest->birthname) && !empty($createRequest->birthname)) {
-            $person->setBirthname($createRequest->birthname);
+        $person->setFirstNames($createRequest->firstNames);
+        if (isset($createRequest->birthName) && !empty($createRequest->birthName)) {
+            $person->setBirthName($createRequest->birthName);
         }
         if (isset($createRequest->birthDate) && !empty($createRequest->birthDate)) {
-            $person->setBirthdate(new \DateTime($createRequest->birthDate));
+            $person->setBirthDate(new \DateTime($createRequest->birthDate));
         } else {
-            $person->setBirthdate(null);
+            $person->setBirthDate(null);
         }
         if (isset($createRequest->birthCertificate) && !empty($createRequest->birthCertificate)) {
             $person->setBirthCertificate(intval($createRequest->birthCertificate));
         }
         if (isset($createRequest->deathDate) && !empty($createRequest->deathDate)) {
-            $person->setDeathdate(new \DateTime($createRequest->deathDate));
+            $person->setDeathDate(new \DateTime($createRequest->deathDate));
         } else {
-            $person->setDeathdate(null);
+            $person->setDeathDate(null);
         }
         if (isset($createRequest->deathCertificate) && !empty($createRequest->deathCertificate)) {
             $person->setDeathCertificate(intval($createRequest->deathCertificate));
@@ -101,12 +112,12 @@ final class PersonController extends BaseController
         }
 
         $person->setName($request->name);
-        $person->setFirstnames($request->firstnames);
-        $person->setBirthname($request->birthname);
-        if (isset($request->birthdate) && !empty($request->birthdate)) {
-            $person->setBirthdate(new \DateTime($request->birthdate));
+        $person->setFirstNames($request->firstNames);
+        $person->setBirthName($request->birthName);
+        if (isset($request->birthDate) && !empty($request->birthDate)) {
+            $person->setBirthDate(new \DateTime($request->birthDate));
         } else {
-            $person->setBirthdate(null);
+            $person->setBirthDate(null);
         }
         if (isset($request->birthCertificate) && !empty($request->birthCertificate)) {
             $person->setBirthCertificate(intval($request->birthCertificate));
@@ -114,9 +125,9 @@ final class PersonController extends BaseController
             $person->setBirthCertificate(null);
         }
         if (isset($request->deathDate) && !empty($request->deathDate)) {
-            $person->setDeathdate(new \DateTime($request->deathDate));
+            $person->setDeathDate(new \DateTime($request->deathDate));
         } else {
-            $person->setDeathdate(null);
+            $person->setDeathDate(null);
         }
         if (isset($request->deathCertificate) && !empty($request->deathCertificate)) {
             $person->setDeathCertificate(intval($request->deathCertificate));

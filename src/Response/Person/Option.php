@@ -9,13 +9,13 @@ class Option
 {
     public ?string $id;
     public ?string $name;
-    public ?string $firstnames;
+    public ?string $firstNames;
 
     public function __construct(
         Person $person
     ) {
         $this->id = $person->getId()->toRfc4122();
         $this->name = $person->getName();
-        $this->firstnames = $person->getFirstnames();
+        $this->firstNames = $person->getFirstNames();
     }
 }
