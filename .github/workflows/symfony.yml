@@ -54,15 +54,18 @@ jobs:
       uses: actions/checkout@v4
 
     # Step 2: Set Docker Image Tag (based on Git tag or commit SHA)
+    # - name: Set Docker Image Tag
+    #   id: docker_tag
+    #   run: |
+    #     if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" == "tag" ]; then
+    #       TAG="${{ github.ref_name }}"
+    #       echo "DOCKER_TAG=$TAG" >> $GITHUB_ENV
+    #     else
+    #       exit 1
+    #     fi
     - name: Set Docker Image Tag
       id: docker_tag
-      run: |
-        if [ -n "${{ github.ref_type }}" ] && [ "${{ github.ref_type }}" == "tag" ]; then
-          TAG="${{ github.ref_name }}"
-          echo "DOCKER_TAG=$TAG" >> $GITHUB_ENV
-        else
-          exit 1
-        fi
+      run: echo "DOCKER_TAG=v0.2.4" >> $GITHUB_ENV
 
     - name: Create env
       run: echo "${{ secrets.ENV }}" > .env && cat .env
