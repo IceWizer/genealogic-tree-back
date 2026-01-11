@@ -6,8 +6,9 @@
 name: Symfony
 
 on:
-  release:
-    types: [created]
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
