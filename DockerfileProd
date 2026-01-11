@@ -1,4 +1,4 @@
-FROM php:8.3.3-fpm-alpine
+FROM php:8.4.11-fpm-alpine
 LABEL authors="Florian Charlot"
 
 COPY --from=composer:2.1.9 /usr/bin/composer /usr/bin/composer
@@ -18,7 +18,7 @@ RUN apk add --no-cache \
 COPY ./ /var/www/html/
 
 RUN curl -sS https://get.symfony.com/cli/installer | bash && mv /root/.symfony5/bin/symfony /usr/local/bin/symfony \
-    && composer install --no-interaction
+	&& composer install --no-interaction
 
 EXPOSE 80
 
