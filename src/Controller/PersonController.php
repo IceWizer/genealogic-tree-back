@@ -140,6 +140,25 @@ final class PersonController extends BaseController
         return $this->json(new Show($person), Response::HTTP_OK, []);
     }
 
+    #[Route('/{id}', name: 'delete', requirements: ['id' => self::UUID_REGEX], methods: ['DELETE'])]
+    public function delete(string $id, EntityManagerInterface $em): Response
+    {
+        $person = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary(), 'owner' => $this->getUser()->getId()->toBinary()]);
+
+        if ($person === null) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
+        }
+
+        if ($person->getOwner()->getId() !== $this->getUser()->getId()) {
+            return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
+        }
+
+        $em->remove($person);
+        $em->flush();
+
+        return $this->json(null, Response::HTTP_NO_CONTENT);
+    }
+
     #[Route('/{id}/possible-children', name: 'possible_children', requirements: ['id' => self::UUID_REGEX], methods: ['GET'])]
     public function possibleChildren(string $id): Response
     {
