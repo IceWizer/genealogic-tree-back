@@ -34,18 +34,26 @@ final class PersonController extends BaseController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(#[CurrentUser] User $user, Request $request): Response
     {
+        $page = $request->query->get('page', 1);
+        $limit = $request->query->get('limit', 10);
+
         $q = $request->query->get('q');
         if ($q) {
-            $people = $this->repository->findAllByOwnerAndQuery($user, $q);
+            $paginatedPeople = $this->repository->paginateFindAllByOwnerAndQuery($user, $q, $page, $limit);
         } else {
-            $people = $this->repository->findAllByOwner($user);
+            $paginatedPeople = $this->repository->paginateFindAllByOwner($user, $page, $limit);
         }
 
         $formattedPeople = array_map(function ($person) {
             return new Read($person);
-        }, $people);
+        }, iterator_to_array($paginatedPeople->getIterator()));
 
-        return $this->json($formattedPeople, Response::HTTP_OK, []);
+        $total = $paginatedPeople->count();
+
+        return $this->json([
+            'data' => $formattedPeople,
+            'total' => $total
+        ], Response::HTTP_OK, []);
     }
 
     #[Route('/{id}', name: 'show', requirements: ['id' => self::UUID_REGEX], methods: ['GET'])]
