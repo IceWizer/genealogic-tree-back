@@ -5,7 +5,6 @@ namespace App\Repository;
 use App\Entity\Person;
 use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
-use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\ORM\Tools\Pagination\Paginator;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -37,22 +36,24 @@ class PersonRepository extends ServiceEntityRepository
         }
     }
 
+    /** @return array<Person> */
     public function findAllByOwner(User $owner): array
     {
         return $this->createQueryBuilder('p')
             ->andWhere('p.owner = :owner')
-            ->setParameter('owner', $owner->getId()->toBinary())
+            ->setParameter('owner', $owner->getId()?->toBinary())
             ->orderBy('p.id', 'ASC')
             ->getQuery()
             ->getResult()
         ;
     }
 
+    /** @return \Doctrine\ORM\Tools\Pagination\Paginator<mixed> */
     public function paginateFindAllByOwner(User $owner, int $page = 1, int $limit = 10): Paginator
     {
         $queryBuilder = $this->createQueryBuilder('p')
             ->andWhere('p.owner = :owner')
-            ->setParameter('owner', $owner->getId()->toBinary())
+            ->setParameter('owner', $owner->getId()?->toBinary())
             ->orderBy('p.id', 'ASC')
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
@@ -60,12 +61,13 @@ class PersonRepository extends ServiceEntityRepository
         return new Paginator($queryBuilder);
     }
 
+    /** @return array<Person> */
     public function findAllByOwnerAndQuery(User $owner, string $query): array
     {
         $queries = explode(' ', $query);
         $queryBuilder = $this->createQueryBuilder('p')
             ->andWhere('p.owner = :owner')
-            ->setParameter('owner', $owner->getId()->toBinary())
+            ->setParameter('owner', $owner->getId()?->toBinary())
             ->orderBy('p.id', 'ASC');
 
         $i = 0;
@@ -87,12 +89,13 @@ class PersonRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /** @return \Doctrine\ORM\Tools\Pagination\Paginator<mixed> */
     public function paginateFindAllByOwnerAndQuery(User $owner, string $query, int $page = 1, int $limit = 10): Paginator
     {
         $queries = explode(' ', $query);
         $queryBuilder = $this->createQueryBuilder('p')
             ->andWhere('p.owner = :owner')
-            ->setParameter('owner', $owner->getId()->toBinary())
+            ->setParameter('owner', $owner->getId()?->toBinary())
             ->orderBy('p.id', 'ASC')
             ->setFirstResult(($page - 1) * $limit)
             ->setMaxResults($limit);
@@ -111,20 +114,19 @@ class PersonRepository extends ServiceEntityRepository
             $i++;
         }
 
-        return $queryBuilder
-            ->getQuery()
-            ->getResult();
+        return new Paginator($queryBuilder);
     }
 
+    /** @return array<Person> */
     public function findPossibleChildren(Person $parent): array
     {
         $expr = $this->getEntityManager()->getExpressionBuilder();
 
         $query = $this->createQueryBuilder('p')
             ->andWhere('p.owner = :owner')
-            ->setParameter('owner', $parent->getOwner()->getId()->toBinary())
+            ->setParameter('owner', $parent->getOwner()->getId()?->toBinary())
             ->andWhere('p.id != :id')
-            ->setParameter('id', $parent->getId()->toBinary())
+            ->setParameter('id', $parent->getId()?->toBinary())
             ->andWhere(
                 $expr->orX(
                     $expr->isNull('p.parent1'),
@@ -143,7 +145,7 @@ class PersonRepository extends ServiceEntityRepository
         }
         if ($parent->getChildren()->count() > 0) {
             $query->andWhere('p.id NOT IN (:children)')
-                ->setParameter('children', $parent->getChildren()->map(fn(Person $person) => $person->getId()->toBinary()));
+                ->setParameter('children', $parent->getChildren()->map(fn(Person $person) => $person->getId()?->toBinary()));
         }
 
         return $query->getQuery()

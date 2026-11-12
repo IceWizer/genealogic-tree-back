@@ -6,6 +6,7 @@ use App\Repository\PersonRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Symfony\Component\Serializer\Annotation\Groups;
@@ -22,11 +23,11 @@ class Person
 
     #[ORM\Column(length: 255)]
     #[Groups(['person:read', 'person:show'])]
-    private ?string $name = null;
+    private string $name = "";
 
     #[ORM\Column(length: 255)]
     #[Groups(['person:read', 'person:show'])]
-    private ?string $firstNames = null;
+    private string $firstNames = "";
 
     #[ORM\Column(length: 255, nullable: true)]
     #[Groups(['person:read', 'person:show'])]
@@ -81,9 +82,9 @@ class Person
 
     #[ORM\ManyToOne(inversedBy: 'people')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?User $owner = null;
+    private User $owner;
 
-    public function __construct()
+    public function __construct() 
     {
         $this->children1 = new ArrayCollection();
         $this->children2 = new ArrayCollection();
@@ -270,18 +271,6 @@ class Person
         return $this;
     }
 
-    public function removeWeddings1(Wedding $weddings1): static
-    {
-        if ($this->weddings1->removeElement($weddings1)) {
-            // set the owning side to null (unless already changed)
-            if ($weddings1->getPerson1() === $this) {
-                $weddings1->setPerson1(null);
-            }
-        }
-
-        return $this;
-    }
-
     /**
      * @return Collection<int, Wedding>
      */
@@ -300,24 +289,12 @@ class Person
         return $this;
     }
 
-    public function removeWeddings2(Wedding $weddings2): static
-    {
-        if ($this->weddings2->removeElement($weddings2)) {
-            // set the owning side to null (unless already changed)
-            if ($weddings2->getPerson2() === $this) {
-                $weddings2->setPerson2(null);
-            }
-        }
-
-        return $this;
-    }
-
-    public function getOwner(): ?User
+    public function getOwner(): User
     {
         return $this->owner;
     }
 
-    public function setOwner(?User $owner): static
+    public function setOwner(User $owner): static
     {
         $this->owner = $owner;
 

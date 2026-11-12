@@ -22,7 +22,6 @@ class StrRandomTest extends TestCase
     {
         // General case
         $str = $this->strRandom->generateRandomString(32, 64);
-        $this->assertIsString($str);
         $this->assertGreaterThanOrEqual(32, strlen($str)); // Is the string length greater than or equal to 32?
         $this->assertLessThanOrEqual(64, strlen($str)); // Is the string length less than or equal to 64?
 
@@ -36,11 +35,9 @@ class StrRandomTest extends TestCase
     public function testStrRandomLimitCases(): void
     {
         $str = $this->strRandom->generateRandomString(1);
-        $this->assertIsString($str);
         $this->assertEquals(1, strlen($str)); // Is the string length equal to 1?
 
         $str = $this->strRandom->generateRandomString(StrRandom::$maxRandomLength);
-        $this->assertIsString($str);
         $this->assertEquals(StrRandom::$maxRandomLength, strlen($str)); // Is the string length equal to StrRandom::$maxRandomLength);?
     }
 
@@ -50,7 +47,6 @@ class StrRandomTest extends TestCase
     public function testStrRandomEdgeCases(): void
     {
         $str = $this->strRandom->generateRandomString(32);
-        $this->assertIsString($str);
         $this->assertEquals(32, strlen($str)); // Is the string length equal to 32?
     }
 

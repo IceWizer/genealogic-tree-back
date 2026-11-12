@@ -19,7 +19,7 @@ class RelativeShow
     public function __construct(
         Person $person
     ) {
-        $this->id = $person->getId()->toRfc4122();
+        $this->id = $person->getId()?->toRfc4122();
         $this->name = $person->getName();
         $this->firstNames = $person->getFirstNames();
         $this->birthName = $person->getBirthName();

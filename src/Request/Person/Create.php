@@ -3,6 +3,7 @@
 namespace App\Request\Person;
 
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 class Create
 {
@@ -28,4 +29,19 @@ class Create
 
     #[Assert\Positive(message: 'deathCertificate.positive')]
     public ?int $deathCertificate = null;
+
+    #[Assert\Callback]
+    public function validateDeathDate(ExecutionContextInterface $context): void
+    {
+        if ($this->deathDate !== null && $this->birthDate !== null) {
+            $deathDate = new \DateTime($this->deathDate);
+            $birthDate = new \DateTime($this->birthDate);
+
+            if ($deathDate <= $birthDate) {
+                $context->buildViolation('deathDate.must_be_after_birthDate')
+                    ->atPath('deathDate')
+                    ->addViolation();
+            }
+        }
+    }
 }

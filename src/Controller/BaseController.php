@@ -10,6 +10,6 @@ abstract class BaseController extends AbstractController
 
     protected function isValidUuid(string $uuid): bool
     {
-        return preg_match(self::UUID_REGEX, $uuid) === 1;
+        return preg_match("/^" . self::UUID_REGEX . "/i", $uuid) === 1;
     }
 }

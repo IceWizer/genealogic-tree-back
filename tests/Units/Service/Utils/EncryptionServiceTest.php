@@ -27,7 +27,6 @@ class EncryptionServiceTest extends BaseTestCase
     {
         $encryptionService = new EncryptionService('secret');
         $encrypted = $encryptionService->encrypt('Hello, world!');
-        $this->assertIsString($encrypted);
         $this->assertNotEquals('Hello, world!', $encrypted);
     }
 

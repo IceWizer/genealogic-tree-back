@@ -21,10 +21,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     private ?Uuid $id = null;
 
     #[ORM\Column(length: 255)]
-    private ?string $email = null;
+    private string $email = "";
 
     #[ORM\Column(length: 255)]
-    private ?string $password = null;
+    private string $password = "";
 
     #[ORM\Column(nullable: true)]
     private ?\DateTimeImmutable $emailVerifiedAt = null;
@@ -103,7 +103,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getUserIdentifier(): string
     {
-        if ($this->email === null) {
+        if ($this->email === "") {
             throw new \LogicException('The user identifier is not set.');
         }
         return $this->email;
@@ -151,18 +151,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         if (!$this->people->contains($person)) {
             $this->people->add($person);
             $person->setOwner($this);
-        }
-
-        return $this;
-    }
-
-    public function removePerson(Person $person): static
-    {
-        if ($this->people->removeElement($person)) {
-            // set the owning side to null (unless already changed)
-            if ($person->getOwner() === $this) {
-                $person->setOwner(null);
-            }
         }
 
         return $this;

@@ -141,10 +141,10 @@ class LoginControllerTest extends WebTestCase
             1
         );
         // Check if the token is between 250 and 350 characters
-        $this->assertGreaterThanOrEqual(250, strlen($user->getToken()));
-        $this->assertLessThanOrEqual(350, strlen($user->getToken()));
+        $this->assertGreaterThanOrEqual(250, strlen($user->getToken() ?? ""));
+        $this->assertLessThanOrEqual(350, strlen($user->getToken() ?? ""));
 
-        return $user->getToken();
+        return $user->getToken() ?? "";
     }
 
     /**

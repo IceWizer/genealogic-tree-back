@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Person;
+use App\Entity\User;
 use App\Repository\PersonRepository;
 use App\Request\Person\Create;
 use App\Request\Person\Update;
@@ -16,8 +17,6 @@ use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Uid\Uuid;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
-use Nelmio\ApiDocBundle\Annotation\Security;
-use App\Entity\User;
 use Symfony\Component\HttpFoundation\Request;
 
 #[Route("/api/person")]
@@ -34,17 +33,19 @@ final class PersonController extends BaseController
     #[Route('/', name: 'index', methods: ['GET'])]
     public function index(#[CurrentUser] User $user, Request $request): Response
     {
-        $page = $request->query->get('page', 1);
-        $limit = $request->query->get('limit', 10);
+        $page = $request->query->getInt('page', 1);
+        $limit = $request->query->getInt('limit', 10);
 
-        $q = $request->query->get('q');
+        $q = $request->query->getString('q');
         if ($q) {
+            /** @var \Doctrine\ORM\Tools\Pagination\Paginator<Person> */
             $paginatedPeople = $this->repository->paginateFindAllByOwnerAndQuery($user, $q, $page, $limit);
         } else {
+            /** @var \Doctrine\ORM\Tools\Pagination\Paginator<Person> */
             $paginatedPeople = $this->repository->paginateFindAllByOwner($user, $page, $limit);
         }
 
-        $formattedPeople = array_map(function ($person) {
+        $formattedPeople = array_map(function (Person $person) {
             return new Read($person);
         }, iterator_to_array($paginatedPeople->getIterator()));
 
@@ -57,7 +58,7 @@ final class PersonController extends BaseController
     }
 
     #[Route('/{id}', name: 'show', requirements: ['id' => self::UUID_REGEX], methods: ['GET'])]
-    public function show(string $id): Response
+    public function show(string $id, #[CurrentUser] User $user): Response
     {
         $person = $this->repository->findOneBy(['id' => $id]);
 
@@ -65,7 +66,7 @@ final class PersonController extends BaseController
             return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($person->getOwner()->getId() !== $this->getUser()->getId()) {
+        if ($person->getOwner()->getId() !== $user->getId()) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
         }
 
@@ -73,7 +74,7 @@ final class PersonController extends BaseController
     }
 
     #[Route('', name: 'create', methods: ['POST'])]
-    public function create(#[MapRequestPayload(acceptFormat: "json")] Create $createRequest, EntityManagerInterface $em): Response
+    public function create(#[MapRequestPayload(acceptFormat: "json")] Create $createRequest, EntityManagerInterface $em, #[CurrentUser] User $user): Response
     {
         $person = new Person();
 
@@ -98,7 +99,7 @@ final class PersonController extends BaseController
         if (isset($createRequest->deathCertificate) && !empty($createRequest->deathCertificate)) {
             $person->setDeathCertificate(intval($createRequest->deathCertificate));
         }
-        $person->setOwner($this->getUser());
+        $person->setOwner($user);
 
         $em->persist($person);
         $em->flush();
@@ -107,15 +108,15 @@ final class PersonController extends BaseController
     }
 
     #[Route('/{id}', name: 'update', requirements: ['id' => self::UUID_REGEX], methods: ['PUT'])]
-    public function update(#[MapRequestPayload(acceptFormat: "json")] Update $request, string $id, EntityManagerInterface $em): Response
+    public function update(#[MapRequestPayload(acceptFormat: "json")] Update $request, string $id, EntityManagerInterface $em, #[CurrentUser] User $user): Response
     {
-        $person = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary(), 'owner' => $this->getUser()->getId()->toBinary()]);
+        $person = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary(), 'owner' => $user->getId()?->toBinary()]);
 
         if ($person === null) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($person->getOwner()->getId() !== $this->getUser()->getId()) {
+        if ($person->getOwner()->getId() !== $user->getId()) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
         }
 
@@ -149,15 +150,15 @@ final class PersonController extends BaseController
     }
 
     #[Route('/{id}', name: 'delete', requirements: ['id' => self::UUID_REGEX], methods: ['DELETE'])]
-    public function delete(string $id, EntityManagerInterface $em): Response
+    public function delete(string $id, EntityManagerInterface $em, #[CurrentUser] User $user): Response
     {
-        $person = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary(), 'owner' => $this->getUser()->getId()->toBinary()]);
+        $person = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary(), 'owner' => $user->getId()?->toBinary()]);
 
         if ($person === null) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($person->getOwner()->getId() !== $this->getUser()->getId()) {
+        if ($person->getOwner()->getId() !== $user->getId()) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
         }
 
@@ -184,7 +185,7 @@ final class PersonController extends BaseController
     }
 
     #[Route('/{id}/add-child/{childId}', name: 'add_child', requirements: ['id' => self::UUID_REGEX, 'childId' => self::UUID_REGEX], methods: ['POST'])]
-    public function addChild(string $id, string $childId, EntityManagerInterface $em): Response
+    public function addChild(string $id, string $childId, EntityManagerInterface $em, #[CurrentUser] User $user): Response
     {
         $parent = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary()]);
         $child = $this->repository->findOneBy(['id' => Uuid::fromString($childId)->toBinary()]);
@@ -192,8 +193,8 @@ final class PersonController extends BaseController
         if (
             $parent === null
             || $child === null
-            || $parent->getOwner()->getId() !== $this->getUser()->getId()
-            || $child->getOwner()->getId() !== $this->getUser()->getId()
+            || $parent->getOwner()->getId() !== $user->getId()
+            || $child->getOwner()->getId() !== $user->getId()
         ) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
         }
@@ -218,7 +219,7 @@ final class PersonController extends BaseController
     }
 
     #[Route('/{id}/remove-child/{childId}', name: 'remove_child', requirements: ['id' => self::UUID_REGEX, 'childId' => self::UUID_REGEX], methods: ['POST'])]
-    public function removeChild(string $id, string $childId, EntityManagerInterface $em): Response
+    public function removeChild(string $id, string $childId, EntityManagerInterface $em, #[CurrentUser] User $user): Response
     {
         $parent = $this->repository->findOneBy(['id' => Uuid::fromString($id)->toBinary()]);
         $child = $this->repository->findOneBy(['id' => Uuid::fromString($childId)->toBinary()]);
@@ -227,7 +228,7 @@ final class PersonController extends BaseController
             return $this->json(['error' => 'Person not found'], Response::HTTP_NOT_FOUND);
         }
 
-        if ($parent->getOwner()->getId() !== $this->getUser()->getId() || $child->getOwner()->getId() !== $this->getUser()->getId()) {
+        if ($parent->getOwner()->getId() !== $user->getId() || $child->getOwner()->getId() !== $user->getId()) {
             return $this->json(['error' => 'Person not found'], Response::HTTP_FORBIDDEN);
         }
 

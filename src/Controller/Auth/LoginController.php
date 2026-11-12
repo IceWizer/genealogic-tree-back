@@ -4,22 +4,21 @@ namespace App\Controller\Auth;
 
 use App\Entity\User;
 use App\Repository\UserRepository;
+use App\Request\Auth\Register as RegisterRequest;
 use Doctrine\ORM\EntityManagerInterface;
-use Symfony\Component\Security\Http\Attribute\CurrentUser;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
-use Symfony\Component\Validator\Constraints\Email as ConstraintsEmail;
-use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Required;
 use Symfony\Component\Validator\Constraints\Type;
 use Symfony\Component\Validator\Validation;
-use Nelmio\ApiDocBundle\Annotation\Security;
+use Nelmio\ApiDocBundle\Attribute\Security;
 use OpenApi\Attributes as OA;
+use Symfony\Component\HttpKernel\Attribute\MapRequestPayload;
 
 #[OA\Tag("Auth")]
 class LoginController extends AbstractController
@@ -27,8 +26,7 @@ class LoginController extends AbstractController
     /**
      * Get JWT token to login
      * 
-     * @param Request $request
-     * @return Response
+     * @phpstan-ignore missingType.return
      */
     #[OA\Post(
         summary: "Get JWT token to login",
@@ -71,44 +69,24 @@ class LoginController extends AbstractController
     }
 
     #[Route("/api/auth/register", name: "api_register", methods: ["POST"])]
-    public function register(Request $request, EntityManagerInterface $em, UserPasswordHasherInterface $passwordHasher, UserRepository $userRepository, MailerInterface $mailer): Response
-    {
-        $payload = $request->getPayload();
-
+    public function register(
+        #[MapRequestPayload(acceptFormat: "json")] RegisterRequest $request, 
+        EntityManagerInterface $em, 
+        UserPasswordHasherInterface $passwordHasher, 
+        UserRepository $userRepository,
+        MailerInterface $mailer
+    ): Response {
         // Check the unicity of the email
-        if ($userRepository->findOneBy(['email' => $payload->get('email')]) !== null) {
+        if ($userRepository->findOneBy(['email' => $request->email]) !== null) {
             return $this->json([
                 'message' => 'Email already exists',
             ], 400);
         }
 
-        // Validate the payload
-        $validator = Validation::createValidator();
-
-        $rules = [
-            'email' => [new Required(), new NotBlank(message: "email.not_blank"), new ConstraintsEmail(message: "email.format")],
-            'password' => [new Required(), new NotBlank(message: "password.not_blank"), new Type('string', "password.string")],
-        ];
-
-        $violations = [];
-        foreach ($rules as $key => $value) {
-            $violation = $validator->validate($payload->get($key), $value);
-            if ($violation->has(0)) {
-                $violations[$key] = $violation->get(0)->getMessage();
-            }
-        }
-
-        if (empty($violations) === false) {
-            return $this->json([
-                'message' => 'Validation error',
-                'errors' => $violations,
-            ], 400);
-        }
-
         /** @var string */
-        $emailField = $payload->get('email');
+        $emailField = $request->email;
         /** @var string */
-        $passwordField = $payload->get('password');
+        $passwordField = $request->password;
 
         $em->beginTransaction();
 
@@ -123,11 +101,14 @@ class LoginController extends AbstractController
         $em->persist($user);
         $em->flush();
 
+        /** @var string */
+        $appUrl = $this->getParameter("app.app_url");
+
         $email = (new Email())
             ->to($emailField)
             ->subject('Vérification de votre adresse email')
             ->text('Veuillez cliquer sur ce lien pour valider votre adresse email')
-            ->html('<a href="' . $this->getParameter("app.app_url") . 'verify-email/' . $user->getToken() . '">Cliquez ici pour valider votre adresse email</a>');
+            ->html('<a href="' . $appUrl . 'verify-email/' . $user->getToken() . '">Cliquez ici pour valider votre adresse email</a>');
 
         try {
             $mailer->send($email);
@@ -188,11 +169,14 @@ class LoginController extends AbstractController
         $user->setToken($userRepository->generateToken(250, 350));
         $user->setEmailVerifiedAt(null);
 
+        /** @var string */
+        $appUrl = $this->getParameter("app.app_url");
+
         $email = (new Email())
             ->to($emailField)
             ->subject('Récupération de mot de passe')
             ->text('Veuillez cliquer sur ce lien pour réinitialiser votre mot de passe')
-            ->html('<a href="' . $this->getParameter("app.app_url") . 'reset-password/' . $user->getToken() . '">Cliquez ici pour réinitialiser votre mot de passe</a>');
+            ->html('<a href="' . $appUrl . 'reset-password/' . $user->getToken() . '">Cliquez ici pour réinitialiser votre mot de passe</a>');
 
         try {
             $mailer->send($email);

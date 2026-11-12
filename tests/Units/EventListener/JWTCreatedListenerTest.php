@@ -62,7 +62,7 @@ class JWTCreatedListenerTest extends BaseTestCase
 
             public function getUserIdentifier(): string
             {
-                return '';
+                return '0';
             }
 
             public function eraseCredentials(): void {}

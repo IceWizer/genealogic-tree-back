@@ -14,11 +14,12 @@ class ValidationExceptionListener
         $exception = $event->getThrowable();
 
         if ($exception->getPrevious() instanceof ValidationFailedException) {
+            /** @var ValidationFailedException */
             $previous = $exception->getPrevious();
 
             $violations = [];
 
-            foreach ($previous->getViolations()->getIterator()->getArrayCopy() as $violation) {
+            foreach ($previous->getViolations() as $violation) {
                 $key = explode(".", $violation->getMessage())[0];
                 $value = explode(".", $violation->getMessage())[1];
 

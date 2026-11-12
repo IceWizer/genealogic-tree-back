@@ -3,10 +3,7 @@
 use App\Entity\User;
 use App\Utils\StrRandom;
 use Doctrine\ORM\EntityManagerInterface;
-use PHPUnit\Framework\MockObject\Rule\InvocationOrder;
-use Psr\Log\LoggerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
-use Symfony\Component\HttpKernel\Log\Logger;
 
 class UserRepositoryTest extends WebTestCase
 {
@@ -39,8 +36,11 @@ class UserRepositoryTest extends WebTestCase
 
         // Mock StrRandom::generateRandomString to return a known token
         $mock = $this->createMock(StrRandom::class);
+
+        $consecutiveCalls = new ConsecutiveCalls($existingToken, 'uniqueToken456');
+
         $mock->method('generateRandomString')
-            ->will($this->onConsecutiveCalls($existingToken, 'uniqueToken456'));
+            ->will($consecutiveCalls);
 
         self::getContainer()->set(StrRandom::class, $mock);
 

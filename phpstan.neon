@@ -1,4 +1,9 @@
 parameters:
+	doctrine:
+		objectManagerLoader: tests/object-manager.php
+	excludePaths:
+		- tests/bootstrap.php
+		- tests/object-manager.php
 	level: 10
 	paths:
 		- src

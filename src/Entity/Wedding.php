@@ -19,11 +19,11 @@ class Wedding
 
     #[ORM\ManyToOne(inversedBy: 'weddings1')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Person $person1 = null;
+    private Person $person1;
 
     #[ORM\ManyToOne(inversedBy: 'weddings2')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?Person $person2 = null;
+    private Person $person2;
 
     #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $weddingDate = null;
@@ -31,35 +31,35 @@ class Wedding
     #[ORM\Column(nullable: true)]
     private ?int $weddingCertificate = null;
 
-    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[ORM\Column(type: Types::DATE_MUTABLE, nullable: true)]
     private ?\DateTimeInterface $divorsedDate = null;
 
     #[ORM\Column(nullable: true)]
     private ?int $divorsedCertificate = null;
 
-    public function getId(): ?int
+    public function getId(): ?Uuid
     {
         return $this->id;
     }
 
-    public function getPerson1(): ?Person
+    public function getPerson1(): Person
     {
         return $this->person1;
     }
 
-    public function setPerson1(?Person $person1): static
+    public function setPerson1(Person $person1): static
     {
         $this->person1 = $person1;
 
         return $this;
     }
 
-    public function getPerson2(): ?Person
+    public function getPerson2(): Person
     {
         return $this->person2;
     }
 
-    public function setPerson2(?Person $person2): static
+    public function setPerson2(Person $person2): static
     {
         $this->person2 = $person2;
 
