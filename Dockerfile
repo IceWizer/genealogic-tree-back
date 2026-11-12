@@ -27,7 +27,7 @@ RUN	mv /root/.symfony5/bin/symfony /usr/local/bin/symfony
 
 WORKDIR /var/www/html
 
-RUN	composer install --no-interaction --no-scripts
+RUN	composer install --no-interaction --no-scripts --no-dev
 
 EXPOSE 80
 EXPOSE 9003
